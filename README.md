@@ -1,7 +1,5 @@
 # Flex Living Developer Assessment - Documentation
 
-**Submitted by:** [Your Name]
-
 ## 1. Tech Stack
 
 This solution utilizes a modern, type-safe full-stack environment designed for performance and scalability.
