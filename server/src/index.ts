@@ -8,7 +8,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://your-vercel-project-name.vercel.app", // You will add this later
+      "https://flex-assessment.vercel.app", // You will add this later
     ],
   })
 );
