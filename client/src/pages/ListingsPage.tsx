@@ -14,7 +14,7 @@ import {
 const PROPERTIES = [
   {
     id: 188027,
-    title: "2B NI A 29 Shoreditch Heights", // Matches backend listingName
+    title: "2B NI A - 29 Shoreditch Heights",
     location: "London",
     guests: 5,
     bedrooms: 2,
