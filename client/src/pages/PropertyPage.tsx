@@ -33,7 +33,7 @@ const PROPERTY_MAP: Record<
   { name: string; title: string; price: number; images: string[] }
 > = {
   "188027": {
-    name: "2B NI A - 29 Shoreditch Heights", // Must match backend exactly
+    name: "2B NI A 29 Shoreditch Heights", // Must match backend exactly
     title: "Spacious 2 Bed Flat",
     price: 155,
     images: [
