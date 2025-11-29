@@ -1,30 +1,61 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
 import { Review } from "../types";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../config"; // Ensure correct import path
 import {
   Star,
-  User,
-  MapPin,
-  Share,
-  Heart,
   Wifi,
-  Car,
-  Coffee,
-  Utensils,
   Monitor,
-  ChevronDown,
+  Utensils,
   CheckCircle,
+  MapPin,
+  User,
 } from "lucide-react";
 
+// 1. Define the Raw shape locally for clarity
+interface HostawayReviewRaw {
+  id: number;
+  type: string;
+  status: string;
+  rating: number | null;
+  publicReview: string;
+  reviewCategory: { category: string; rating: number }[];
+  submittedAt: string;
+  guestName: string;
+  listingName: string;
+  isVisible: boolean;
+}
+
+// 2. Configuration
+const PROPERTY_MAP: Record<
+  string,
+  { name: string; title: string; price: number; images: string[] }
+> = {
+  "188027": {
+    name: "2B N1 A - 29 Shoreditch Heights", // Must match backend exactly
+    title: "Spacious 2 Bed Flat in Crystal Palace",
+    price: 155,
+    images: [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1484154218962-a1c002085d2f?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop",
+    ],
+  },
+};
+
 export const PropertyPage: React.FC = () => {
+  const { id } = useParams();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Flex Living Brand Colors from your HTML
+  const currentProperty = PROPERTY_MAP[id || ""] || PROPERTY_MAP["188027"];
+
   const colors = {
-    primary: "#284E4C", // Dark Green
-    bg: "#FFFDF6", // Cream/Off-white
+    primary: "#284E4C",
+    bg: "#FFFDF6",
     textMain: "#333333",
     textLight: "#5C5C5A",
   };
@@ -33,8 +64,60 @@ export const PropertyPage: React.FC = () => {
     const fetchPublicReviews = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/reviews/hostaway`);
-        // FILTER: Only show reviews where isVisible === true
-        setReviews(res.data.data.filter((r: Review) => r.isVisible));
+        // Handle the 'result' structure from backend
+        const rawData: HostawayReviewRaw[] = res.data.result || [];
+
+        console.log("Raw API Data:", rawData);
+
+        const normalized: Review[] = rawData.map((r) => {
+          const categorySum = r.reviewCategory.reduce(
+            (acc, curr) => acc + curr.rating,
+            0
+          );
+          const avgRating =
+            r.rating ||
+            (r.reviewCategory.length > 0
+              ? categorySum / r.reviewCategory.length
+              : 0);
+
+          const categoriesMap: { [key: string]: number } = {};
+          r.reviewCategory.forEach(
+            (c) => (categoriesMap[c.category] = c.rating)
+          );
+
+          return {
+            id: r.id,
+            guestName: r.guestName,
+            date: r.submittedAt,
+            rating: parseFloat(avgRating.toFixed(1)),
+            comment: r.publicReview,
+            categories: categoriesMap,
+            source: "Hostaway",
+            isVisible: r.isVisible,
+            listingName: r.listingName,
+          };
+        });
+
+        console.log("Normalized Reviews:", normalized);
+
+        // Filtering Logic with Debugging
+        const pageSpecificReviews = normalized.filter((r) => {
+          const isVisible = r.isVisible;
+          // Normalize strings for safer comparison (trim whitespace)
+          const backendName = r.listingName.trim();
+          const targetName = currentProperty.name.trim();
+          const matchesName = backendName === targetName;
+
+          if (isVisible && !matchesName) {
+            console.warn(
+              `Skipped Review ID ${r.id}: Visible but name mismatch. Got '${backendName}', expected '${targetName}'`
+            );
+          }
+
+          return isVisible && matchesName;
+        });
+
+        setReviews(pageSpecificReviews);
       } catch (error) {
         console.error("Failed to fetch reviews", error);
       } finally {
@@ -42,7 +125,7 @@ export const PropertyPage: React.FC = () => {
       }
     };
     fetchPublicReviews();
-  }, []);
+  }, [currentProperty, id]);
 
   const averageRating =
     reviews.length > 0
@@ -56,7 +139,7 @@ export const PropertyPage: React.FC = () => {
       className="font-sans min-h-screen"
       style={{ backgroundColor: colors.bg, color: colors.textMain }}
     >
-      {/* --- HEADER / NAVBAR (Matched to source) --- */}
+      {/* --- HEADER --- */}
       <nav
         className="sticky top-0 z-50 shadow-sm"
         style={{ backgroundColor: colors.primary }}
@@ -82,63 +165,41 @@ export const PropertyPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* --- HERO IMAGE GRID --- */}
+      {/* --- HERO GRID --- */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[400px] md:h-[500px] rounded-2xl overflow-hidden">
           <div className="col-span-2 row-span-2 relative group cursor-pointer">
             <img
-              src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1600&auto=format&fit=crop"
+              src={currentProperty.images[0]}
               alt="Main"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition"></div>
           </div>
-          <div className="bg-gray-200">
-            <img
-              src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="bg-gray-200">
-            <img
-              src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&auto=format&fit=crop"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="bg-gray-200">
-            <img
-              src="https://images.unsplash.com/photo-1484154218962-a1c002085d2f?q=80&w=800&auto=format&fit=crop"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="relative bg-gray-200">
-            <img
-              src="https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop"
-              className="w-full h-full object-cover"
-            />
-            <button className="absolute bottom-4 right-4 bg-white text-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-gray-100">
-              Show all photos
-            </button>
-          </div>
+          {currentProperty.images.slice(1).map((img, idx) => (
+            <div key={idx} className="bg-gray-200 relative">
+              <img src={img} className="w-full h-full object-cover" />
+              {idx === 3 && (
+                <button className="absolute bottom-4 right-4 bg-white text-gray-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-gray-100">
+                  Show all photos
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* --- MAIN CONTENT LAYOUT (2/3 Left, 1/3 Right) --- */}
       <main className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2">
-          {/* Header Info */}
           <div className="border-b pb-6 mb-6">
-            <h1 className="text-3xl font-bold mb-2">
-              Spacious 2 Bed Flat in Crystal Palace
-            </h1>
+            <h1 className="text-3xl font-bold mb-2">{currentProperty.title}</h1>
             <div className="flex gap-4 text-sm text-[#5C5C5A]">
               <span>5 Guests</span> • <span>2 Bedrooms</span> •{" "}
               <span>1 Bathroom</span>
             </div>
           </div>
 
-          {/* Highlights */}
           <div className="flex gap-6 mb-8 overflow-x-auto pb-2">
             <div className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100 min-w-[140px]">
               <Wifi className="text-[#284E4C]" size={20} />
@@ -154,20 +215,18 @@ export const PropertyPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Description */}
           <div className="mb-10">
             <h2 className="text-xl font-bold mb-4">About this home</h2>
             <p className="text-[#5C5C5A] leading-relaxed mb-4">
               Welcome to your home away from home! This spacious and modern
-              2-bedroom apartment offers the perfect blend of comfort and
-              convenience. Ideally located for families or corporate travelers.
+              apartment offers the perfect blend of comfort and convenience.
             </p>
             <button className="text-[#284E4C] font-medium underline underline-offset-4 text-sm">
               Read more
             </button>
           </div>
 
-          {/* --- REVIEWS SECTION (INTEGRATED HERE) --- */}
+          {/* --- REVIEWS SECTION --- */}
           <div id="reviews" className="mb-12 pt-8 border-t">
             <div className="flex items-center gap-3 mb-8">
               <div className="bg-[#284E4C] text-white p-2 rounded-lg">
@@ -188,6 +247,11 @@ export const PropertyPage: React.FC = () => {
               <div className="bg-white p-8 rounded-xl text-center border border-dashed border-gray-300">
                 <p className="text-gray-500">
                   No reviews are currently visible for this property.
+                  <br />
+                  <span className="text-xs text-gray-400">
+                    (Check the Dashboard to approve reviews for:{" "}
+                    {currentProperty.name})
+                  </span>
                 </p>
               </div>
             ) : (
@@ -197,11 +261,10 @@ export const PropertyPage: React.FC = () => {
                     key={review.id}
                     className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4"
                   >
-                    {/* User Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-[#284E4C] font-bold">
-                          {review.guestName.charAt(0)}
+                          <User size={20} />
                         </div>
                         <div>
                           <div className="font-semibold text-sm">
@@ -217,12 +280,10 @@ export const PropertyPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Review Content */}
                     <p className="text-[#5C5C5A] text-sm leading-relaxed line-clamp-4">
                       "{review.comment}"
                     </p>
 
-                    {/* Categories (Mini tags) */}
                     <div className="flex flex-wrap gap-2 mt-auto">
                       {Object.entries(review.categories)
                         .slice(0, 3)
@@ -242,7 +303,6 @@ export const PropertyPage: React.FC = () => {
           </div>
           {/* --- END REVIEWS SECTION --- */}
 
-          {/* Location / Map Placeholder */}
           <div className="mb-12">
             <h2 className="text-xl font-bold mb-4">Location</h2>
             <div className="w-full h-64 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
@@ -252,19 +312,18 @@ export const PropertyPage: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN (Booking Widget) */}
+        {/* RIGHT COLUMN */}
         <div className="lg:col-span-1">
           <div className="sticky top-28 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             <div className="bg-[#284E4C] p-4 text-center">
               <h3 className="text-white font-semibold">Book your stay</h3>
               <p className="text-white/80 text-xs">Select dates for prices</p>
             </div>
-
             <div className="p-6">
               <div className="flex justify-between items-end mb-6">
                 <div>
                   <span className="text-2xl font-bold text-[#333333]">
-                    £155
+                    £{currentProperty.price}
                   </span>
                   <span className="text-sm text-gray-500"> / night</span>
                 </div>
@@ -274,38 +333,9 @@ export const PropertyPage: React.FC = () => {
                   <span className="text-gray-400">({reviews.length})</span>
                 </div>
               </div>
-
-              {/* Fake Date Picker Inputs */}
-              <div className="border rounded-lg mb-4 overflow-hidden">
-                <div className="flex border-b">
-                  <div className="w-1/2 p-3 border-r bg-[#F1F3EE] hover:bg-white cursor-pointer transition">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
-                      Check-in
-                    </div>
-                    <div className="text-sm">Add date</div>
-                  </div>
-                  <div className="w-1/2 p-3 bg-[#F1F3EE] hover:bg-white cursor-pointer transition">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
-                      Check-out
-                    </div>
-                    <div className="text-sm">Add date</div>
-                  </div>
-                </div>
-                <div className="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
-                      Guests
-                    </div>
-                    <div className="text-sm">1 Guest</div>
-                  </div>
-                  <ChevronDown size={16} />
-                </div>
-              </div>
-
               <button className="w-full bg-[#284E4C] text-white py-3.5 rounded-lg font-semibold hover:bg-[#1f3d3b] transition shadow-lg mb-4">
                 Check Availability
               </button>
-
               <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
                 <CheckCircle size={12} />
                 <span>Instant Confirmation</span>
@@ -315,47 +345,13 @@ export const PropertyPage: React.FC = () => {
         </div>
       </main>
 
-      {/* --- FOOTER --- */}
       <footer
         className="mt-20 py-12 text-white"
         style={{ backgroundColor: colors.primary }}
       >
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-1">
-            <h3 className="font-bold text-lg mb-4">The Flex</h3>
-            <p className="text-white/70 text-sm leading-relaxed">
-              Professional property management for landlords, corporate rentals,
-              and high-quality stays for guests.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Quick Links</h3>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li>
-                <a href="#">Blog</a>
-              </li>
-              <li>
-                <a href="#">Careers</a>
-              </li>
-              <li>
-                <a href="#">Terms & Conditions</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Locations</h3>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li>London</li>
-              <li>Paris</li>
-              <li>Algiers</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-4">Contact</h3>
-            <p className="text-sm text-white/70">info@theflex.global</p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 text-center text-sm opacity-50">
+          © 2025 The Flex. All rights reserved.
         </div>
-        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-white/20 text-center text-sm text-white/50"></div>
       </footer>
     </div>
   );
