@@ -24,6 +24,18 @@ const PROPERTIES = [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=800&auto=format&fit=crop",
     isNew: true,
   },
+  {
+    id: 119800, // Unique ID for the URL
+    title: "City Center Loft", // Matches backend listingName exactly
+    location: "London",
+    guests: 2,
+    bedrooms: 1,
+    bathrooms: 1,
+    price: 270,
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop",
+    isNew: false,
+  },
 ];
 
 export const ListingsPage: React.FC = () => {

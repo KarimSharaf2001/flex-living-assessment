@@ -44,6 +44,18 @@ const PROPERTY_MAP: Record<
       "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop",
     ],
   },
+  "119800": {
+    name: "City Center Loft", // Must match backend listingName exactly
+    title: "Stylish City Center Loft",
+    price: 270,
+    images: [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1502005229766-939cb9342722?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1484154218962-a1c002085d2f?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop",
+    ],
+  },
 };
 
 export const PropertyPage: React.FC = () => {
