@@ -10,7 +10,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://flex-reviews.vercel.app", // Update this to match your actual Vercel URL
+      "https://flex-reviews-umber.vercel.app", // Update this to match your actual Vercel URL
     ],
   })
 );
