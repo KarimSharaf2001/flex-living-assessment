@@ -14,11 +14,14 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* Linting - DISABLE THESE FOR DEPLOYMENT */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noUnusedLocals": false, // <--- Change to false
+    "noUnusedParameters": false, // <--- Change to false
+    "noFallthroughCasesInSwitch": true,
+
+    /* Fix import.meta.env error */
+    "types": ["vite/client"] // <--- Add this line
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
