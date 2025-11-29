@@ -5,12 +5,10 @@ import { API_BASE_URL } from "../config";
 import {
   LayoutDashboard,
   Search,
-  Filter,
   ArrowUpDown,
   CheckCircle,
   XCircle,
   AlertCircle,
-  BarChart3,
   Calendar,
   Home,
   Star,
@@ -37,17 +35,56 @@ export const Dashboard: React.FC = () => {
 
   const fetchReviews = async () => {
     try {
+      // 1. Fetch ONLY Hostaway API
       const res = await axios.get(`${API_BASE_URL}/api/reviews/hostaway`);
-      setReviews(res.data.data);
+
+      // 2. Read from '.result'
+      const rawData = res.data.result || [];
+
+      // 3. Normalize the Raw Data
+      const normalizedData = rawData.map((r: any) => {
+        const categorySum = r.reviewCategory
+          ? r.reviewCategory.reduce(
+              (acc: number, curr: any) => acc + curr.rating,
+              0
+            )
+          : 0;
+        const avgRating =
+          r.rating ||
+          (r.reviewCategory && r.reviewCategory.length > 0
+            ? categorySum / r.reviewCategory.length
+            : 0);
+
+        const categoriesMap: { [key: string]: number } = {};
+        if (r.reviewCategory && Array.isArray(r.reviewCategory)) {
+          r.reviewCategory.forEach(
+            (c: any) => (categoriesMap[c.category] = c.rating)
+          );
+        }
+
+        return {
+          id: r.id,
+          guestName: r.guestName,
+          date: r.submittedAt,
+          rating: parseFloat(avgRating.toFixed(1)),
+          comment: r.publicReview,
+          categories: categoriesMap,
+          source: "Hostaway",
+          isVisible: r.isVisible,
+          listingName: r.listingName,
+        };
+      });
+
+      setReviews(normalizedData);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch reviews:", err);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
   };
 
   const toggleVisibility = async (id: number) => {
-    // Optimistic UI update for speed
     setReviews((prev) =>
       prev.map((r) => (r.id === id ? { ...r, isVisible: !r.isVisible } : r))
     );
@@ -55,19 +92,17 @@ export const Dashboard: React.FC = () => {
       await axios.post(`${API_BASE_URL}/api/reviews/${id}/toggle`);
     } catch (err) {
       console.error("Failed to toggle", err);
-      fetchReviews(); // Revert on error
+      fetchReviews();
     }
   };
 
   // --- DERIVED DATA & ANALYTICS ---
 
-  // 1. Unique Properties for Dropdown
   const properties = useMemo(
     () => Array.from(new Set(reviews.map((r) => r.listingName))),
     [reviews]
   );
 
-  // 2. Filter Logic
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
       const matchesSearch =
@@ -87,7 +122,6 @@ export const Dashboard: React.FC = () => {
     });
   }, [reviews, searchTerm, selectedProperty, minRating, statusFilter]);
 
-  // 3. KPI Metrics
   const metrics = useMemo(() => {
     const total = filteredReviews.length;
     const avgRating =
@@ -99,7 +133,6 @@ export const Dashboard: React.FC = () => {
     const publishedCount = filteredReviews.filter((r) => r.isVisible).length;
     const pendingCount = total - publishedCount;
 
-    // Calculate lowest category average (Trend Spotting)
     const catTotals: Record<string, { sum: number; count: number }> = {};
     filteredReviews.forEach((r) => {
       Object.entries(r.categories).forEach(([cat, val]) => {
@@ -109,7 +142,6 @@ export const Dashboard: React.FC = () => {
       });
     });
 
-    // Find the category with the lowest average score
     let issueCategory = "None";
     let lowestScore = 11;
     Object.entries(catTotals).forEach(([cat, data]) => {
@@ -130,9 +162,6 @@ export const Dashboard: React.FC = () => {
     };
   }, [filteredReviews]);
 
-  // --- RENDER HELPERS ---
-
-  // Helper to color code ratings (Green > 9, Yellow > 7, Red < 7)
   const getScoreColor = (score: number) => {
     if (score >= 9) return "bg-green-100 text-green-700 border-green-200";
     if (score >= 7) return "bg-yellow-100 text-yellow-700 border-yellow-200";

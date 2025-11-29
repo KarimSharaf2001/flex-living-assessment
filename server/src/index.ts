@@ -1,25 +1,28 @@
 import express from "express";
 import cors from "cors";
 import { MOCK_RAW_DATA } from "./data";
-// You might need to create this file or remove the import if you don't want Google mocks
-import { MOCK_GOOGLE_REVIEWS } from "./googleData";
 
 const app = express();
+
+// 1. DISABLE CACHING (Crucial for the "Approve" button to reflect changes immediately)
+app.set("etag", false);
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  next();
+});
 
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://flexkokoko.vercel.app", // Update this to match your actual Vercel URL
+      "https://flexkmmmmm.vercel.app", // Your Vercel Frontend
     ],
   })
 );
 app.use(express.json());
 
-// 1. USE RAW DATA (Fixed)
-// We map the raw data directly but add the 'isVisible' flag.
-// We do NOT normalize (calculate averages) here anymore; the frontend does that.
-let db = MOCK_RAW_DATA.map((review) => ({
+// 2. INITIALIZE DATABASE (Raw Data)
+let db: any[] = MOCK_RAW_DATA.map((review) => ({
   ...review,
   isVisible: false, // Default hidden
 }));
@@ -28,7 +31,7 @@ let db = MOCK_RAW_DATA.map((review) => ({
 app.get("/api/reviews/hostaway", (req, res) => {
   res.json({
     status: "success",
-    result: db, // <--- CHANGED from 'data' to 'result' to match Frontend expectation
+    result: db,
   });
 });
 
@@ -44,17 +47,6 @@ app.post("/api/reviews/:id/toggle", (req, res) => {
   } else {
     res.status(404).json({ error: "Review not found" });
   }
-});
-
-// GET /api/reviews/google (Simulation)
-app.get("/api/reviews/google", (req, res) => {
-  res.json({
-    status: "OK",
-    result: {
-      name: "2B N1 A - 29 Shoreditch Heights",
-      reviews: MOCK_GOOGLE_REVIEWS, // Ensure you have created server/src/googleData.ts
-    },
-  });
 });
 
 // Export for Vercel
