@@ -1,81 +1,66 @@
 import express from "express";
 import cors from "cors";
 import { MOCK_RAW_DATA } from "./data";
-import { NormalizedReview } from "./types";
+// You might need to create this file or remove the import if you don't want Google mocks
+import { MOCK_GOOGLE_REVIEWS } from "./googleData";
 
 const app = express();
+
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://flexs.vercel.app", // You will add this later
+      "https://flex-reviews.vercel.app", // Update this to match your actual Vercel URL
     ],
   })
 );
 app.use(express.json());
 
-// In-memory store to persist "approval" status during the session
-let db: NormalizedReview[] = MOCK_RAW_DATA.map((review) => {
-  // Logic to calculate average rating if main rating is null
-  const categorySum = review.reviewCategory.reduce(
-    (acc, curr) => acc + curr.rating,
-    0
-  );
-  const avgRating =
-    review.rating ||
-    (review.reviewCategory.length > 0
-      ? categorySum / review.reviewCategory.length
-      : 0);
+// 1. USE RAW DATA (Fixed)
+// We map the raw data directly but add the 'isVisible' flag.
+// We do NOT normalize (calculate averages) here anymore; the frontend does that.
+let db = MOCK_RAW_DATA.map((review) => ({
+  ...review,
+  isVisible: false, // Default hidden
+}));
 
-  // Normalize categories to object for easier frontend lookup
-  const categoriesMap: { [key: string]: number } = {};
-  review.reviewCategory.forEach((c) => (categoriesMap[c.category] = c.rating));
-
-  return {
-    id: review.id,
-    guestName: review.guestName,
-    date: review.submittedAt,
-    rating: parseFloat(avgRating.toFixed(1)), // Keep it to 1 decimal
-    comment: review.publicReview,
-    categories: categoriesMap,
-    source: "Hostaway",
-    isVisible: false, // Default to hidden as per "Reviews should be displayed only if approved" [cite: 22]
-    listingName: review.listingName,
-  };
-});
-
-// GET /api/reviews/hostaway - Fetch all reviews [cite: 51]
+// GET /api/reviews/hostaway
 app.get("/api/reviews/hostaway", (req, res) => {
   res.json({
     status: "success",
-    data: db,
+    result: db, // <--- CHANGED from 'data' to 'result' to match Frontend expectation
   });
 });
 
-// POST /api/reviews/:id/toggle - Endpoint to approve/reject reviews [cite: 17]
+// POST /api/reviews/:id/toggle
 app.post("/api/reviews/:id/toggle", (req, res) => {
   const { id } = req.params;
   const reviewIndex = db.findIndex((r) => r.id === parseInt(id));
 
   if (reviewIndex > -1) {
     db[reviewIndex].isVisible = !db[reviewIndex].isVisible;
+    // Return success
     res.json({ success: true, review: db[reviewIndex] });
   } else {
     res.status(404).json({ error: "Review not found" });
   }
 });
 
-// Google Reviews Placeholders [cite: 25]
-// This is where we would integrate Google Places API
+// GET /api/reviews/google (Simulation)
 app.get("/api/reviews/google", (req, res) => {
-  // Implementation pending API Key for Google Places
   res.json({
-    status: "success",
-    message: "Google integration placeholder",
-    data: [],
+    status: "OK",
+    result: {
+      name: "2B N1 A - 29 Shoreditch Heights",
+      reviews: MOCK_GOOGLE_REVIEWS, // Ensure you have created server/src/googleData.ts
+    },
   });
 });
+
+// Export for Vercel
 export default app;
+
+// Local Development Start
 if (require.main === module) {
   const PORT = 3001;
   app.listen(PORT, () => {
