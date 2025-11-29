@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Review } from "../types";
+import { API_BASE_URL } from "../config";
 import {
   Star,
   User,
@@ -31,9 +32,7 @@ export const PropertyPage: React.FC = () => {
   useEffect(() => {
     const fetchPublicReviews = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:3001/api/reviews/hostaway"
-        );
+        const res = await axios.get(`${API_BASE_URL}/api/reviews/hostaway`);
         // FILTER: Only show reviews where isVisible === true
         setReviews(res.data.data.filter((r: Review) => r.isVisible));
       } catch (error) {

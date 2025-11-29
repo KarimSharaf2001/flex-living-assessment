@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import { HostawayReviewRaw, NormalizedReview } from "../types";
+import { Review } from "../types";
+import { API_BASE_URL } from "../config";
 import {
   LayoutDashboard,
   Search,
@@ -36,7 +37,7 @@ export const Dashboard: React.FC = () => {
 
   const fetchReviews = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/reviews/hostaway");
+      const res = await axios.get(`${API_BASE_URL}/api/reviews/hostaway`);
       setReviews(res.data.data);
     } catch (err) {
       console.error(err);
@@ -51,7 +52,7 @@ export const Dashboard: React.FC = () => {
       prev.map((r) => (r.id === id ? { ...r, isVisible: !r.isVisible } : r))
     );
     try {
-      await axios.post(`http://localhost:3001/api/reviews/${id}/toggle`);
+      await axios.post(`${API_BASE_URL}/api/reviews/${id}/toggle`);
     } catch (err) {
       console.error("Failed to toggle", err);
       fetchReviews(); // Revert on error

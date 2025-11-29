@@ -4,7 +4,14 @@ import { MOCK_RAW_DATA } from "./data";
 import { NormalizedReview } from "./types";
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://your-vercel-project-name.vercel.app", // You will add this later
+    ],
+  })
+);
 app.use(express.json());
 
 // In-memory store to persist "approval" status during the session
